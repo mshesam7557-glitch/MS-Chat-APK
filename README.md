@@ -1,11 +1,15 @@
-# MS__Chat Android
+# MS__Chat Android v3
 
-Android wrapper for MS__Chat.
+This Android build intentionally does **not** inject or alter the web site's mobile UI.
+It loads the live MS__Chat web app directly so the phone web layout is used as-is.
 
-Important: the mobile-only layout adjustment is injected by the Android app into the WebView. The public website/UI is not modified by this Android-specific adjustment.
+- App label: MS__Chat
+- Application id: com.mschat.app
+- Target URL: https://ms-chat-307k.onrender.com/
+- JavaScript + DOM storage enabled
+- Microphone/camera permission bridge for WebRTC
+- File picker bridge
+- Explicit WebView focus/touch handling
+- No Android-side mobile CSS/DOM override
 
-Build on GitHub Actions:
-- Push the repository.
-- Open Actions.
-- Run `Build MS Chat APK`.
-- Download the `MS-Chat-APK` artifact.
+Build from GitHub Actions or with `gradlew.bat assembleDebug`.

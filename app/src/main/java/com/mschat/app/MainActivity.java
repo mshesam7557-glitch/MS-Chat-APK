@@ -4,8 +4,11 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
@@ -24,19 +27,26 @@ public class MainActivity extends Activity {
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
     private PermissionRequest pendingPermissionRequest;
-    private boolean mobileChatViewOpen = false;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().setStatusBarColor(android.graphics.Color.rgb(85,117,255));
-        getWindow().setNavigationBarColor(android.graphics.Color.BLACK);
+        getWindow().setStatusBarColor(Color.rgb(85, 117, 255));
+        getWindow().setNavigationBarColor(Color.BLACK);
         buildWebView();
         if (state == null) webView.loadUrl(HOME); else webView.restoreState(state);
     }
 
     private void buildWebView() {
         webView = new WebView(this);
-        webView.setLayoutParams(new ViewGroup.LayoutParams(-1, -1));
+        webView.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+        webView.setFocusable(true);
+        webView.setFocusableInTouchMode(true);
+        webView.requestFocus(View.FOCUS_DOWN);
+        webView.setBackgroundColor(Color.TRANSPARENT);
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         setContentView(webView);
 
         WebSettings s = webView.getSettings();
@@ -48,12 +58,16 @@ public class MainActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setBuiltInZoomControls(false);
         s.setDisplayZoomControls(false);
+        s.setSupportZoom(false);
         s.setUseWideViewPort(false);
         s.setLoadWithOverviewMode(false);
         s.setJavaScriptCanOpenWindowsAutomatically(true);
         s.setSupportMultipleWindows(false);
         s.setTextZoom(100);
         s.setDefaultFontSize(16);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        }
 
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
@@ -61,7 +75,8 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                injectAndroidMobileUi(view);
+                view.setFocusable(true);
+                view.setFocusableInTouchMode(true);
             }
 
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
@@ -75,13 +90,14 @@ public class MainActivity extends Activity {
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public void onPermissionRequest(final PermissionRequest request) {
                 pendingPermissionRequest = request;
-                if (android.os.Build.VERSION.SDK_INT < 23) {
+                if (Build.VERSION.SDK_INT < 23) {
                     request.grant(request.getResources());
                     pendingPermissionRequest = null;
                     return;
                 }
 
-                boolean needsCam = false, needsMic = false;
+                boolean needsCam = false;
+                boolean needsMic = false;
                 for (String resource : request.getResources()) {
                     if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) needsCam = true;
                     if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) needsMic = true;
@@ -117,40 +133,11 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void injectAndroidMobileUi(WebView view) {
-        String script = "javascript:(function(){"
-                + "if(window.__msAndroidUiV2)return;window.__msAndroidUiV2=true;"
-                + "var s=document.createElement('style');s.id='msAndroidMobileOnlyStyle';s.textContent=`"
-                + "html,body{width:100%!important;height:100%!important;margin:0!important;overflow:hidden!important;}"
-                + "#chat{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;min-height:0!important;margin:0!important;border-radius:0!important;overflow:hidden!important;}"
-                + "#sidebar{width:100%!important;min-width:0!important;height:100%!important;overflow:auto!important;padding:12px!important;}"
-                + "#chatArea{display:none!important;width:100%!important;height:100%!important;min-width:0!important;}"
-                + "html.msAndroidChatOpen #sidebar{display:none!important;}"
-                + "html.msAndroidChatOpen #chatArea{display:flex!important;}"
-                + "#messages{padding:12px!important;min-height:0!important;}"
-                + "#message{font-size:16px!important;min-height:44px!important;}"
-                + "#chatHeader{min-height:64px!important;padding:8px 10px!important;flex:none!important;}"
-                + "#sendArea{flex:none!important;padding:8px!important;}"
-                + "#androidBackButton{display:inline-flex!important;align-items:center;justify-content:center;width:40px;height:40px;border:0;border-radius:12px;background:rgba(255,255,255,.82);font-size:24px;margin-left:2px;}"
-                + "#androidBackButton.hidden{display:none!important;}"
-                + "#login{margin:20px auto!important;max-height:calc(100dvh - 40px)!important;overflow:auto!important;}"
-                + "@media(max-width:760px){#sidebar{padding:10px!important;} .userItem,.groupItem{padding:12px!important;} .itemName{font-size:14px!important;} .itemStatus{font-size:11px!important;}}"
-                + "`;document.head.appendChild(s);"
-                + "function byId(x){return document.getElementById(x)};"
-                + "function setOpen(open){document.documentElement.classList.toggle('msAndroidChatOpen',!!open);window.__msAndroidChatOpen=!!open;}"
-                + "function addBack(){var h=byId('chatHeader');if(!h||byId('androidBackButton'))return;var b=document.createElement('button');b.id='androidBackButton';b.type='button';b.textContent='‹';b.title='بازگشت به گفتگوها';b.onclick=function(e){e.preventDefault();e.stopPropagation();setOpen(false);try{window.stopTyping&&window.stopTyping()}catch(_){}};h.insertBefore(b,h.firstChild);}"
-                + "function ready(){var c=byId('chat');if(!c)return false;addBack();if(window.__msAndroidChatOpen!==true)setOpen(false);return true;}"
-                + "document.addEventListener('click',function(e){var item=e.target.closest&&e.target.closest('.userItem,.groupItem,#savedMessagesButton');if(item){setTimeout(function(){addBack();setOpen(true)},60);} },true);"
-                + "var obs=new MutationObserver(function(){if(ready())addBack();});obs.observe(document.documentElement,{childList:true,subtree:true});"
-                + "ready();window.__msAndroidSetChatView=setOpen;"
-                + "})();";
-        try { view.evaluateJavascript(script, null); } catch (Exception ignored) {}
-    }
-
     @Override public void onRequestPermissionsResult(int requestCode, String[] perms, int[] results) {
         super.onRequestPermissionsResult(requestCode, perms, results);
         if (requestCode == MEDIA_PERMS && pendingPermissionRequest != null) {
-            boolean needsCam = false, needsMic = false;
+            boolean needsCam = false;
+            boolean needsMic = false;
             for (String resource : pendingPermissionRequest.getResources()) {
                 if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) needsCam = true;
                 if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) needsMic = true;
@@ -173,15 +160,17 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        if (webView != null) {
-            webView.evaluateJavascript("(function(){if(document.documentElement.classList.contains('msAndroidChatOpen')){document.documentElement.classList.remove('msAndroidChatOpen');window.__msAndroidChatOpen=false;return 'chat';} return 'other';})()", value -> {
-                if ("\"other\"".equals(value)) {
-                    if (webView.canGoBack()) webView.goBack(); else MainActivity.super.onBackPressed();
-                }
-            });
-        } else super.onBackPressed();
+        if (webView != null && webView.canGoBack()) webView.goBack();
+        else super.onBackPressed();
     }
 
-    @Override protected void onSaveInstanceState(Bundle out) { webView.saveState(out); super.onSaveInstanceState(out); }
-    @Override protected void onDestroy() { if (webView != null) webView.destroy(); super.onDestroy(); }
+    @Override protected void onSaveInstanceState(Bundle out) {
+        if (webView != null) webView.saveState(out);
+        super.onSaveInstanceState(out);
+    }
+
+    @Override protected void onDestroy() {
+        if (webView != null) webView.destroy();
+        super.onDestroy();
+    }
 }
