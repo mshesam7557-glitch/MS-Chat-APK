@@ -20,7 +20,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
-    private static final String HOME = "https://ms-chat-307k.onrender.com/?mschat_android=7";
+    private static final String HOME = "https://ms-chat-307k.onrender.com/";
     private static final int FILE_CHOOSER = 1001;
     private static final int MEDIA_PERMS = 1002;
 
@@ -144,28 +144,23 @@ public class MainActivity extends Activity {
     private void injectAndroidWebFixes(WebView view) {
         String js = "javascript:(function(){"
                 + "try{"
-                + "var s=document.getElementById('mschatAndroidFixes');"
-                + "if(!s){s=document.createElement('style');s.id='mschatAndroidFixes';document.head.appendChild(s);}"
-                + "s.textContent='html,body{margin:0!important;width:100%!important;min-height:100%!important;background-repeat:no-repeat!important;background-position:center top!important;background-attachment:scroll!important;}html{background-color:#dfe2ea!important;background-image:linear-gradient(rgba(6,14,50,.20),rgba(18,8,60,.22)),url(\\'/background.png\\')!important;background-size:cover!important;}body{background-color:transparent!important;background-image:none!important;overflow-x:hidden!important;-webkit-tap-highlight-color:transparent!important;}button,input,label,textarea,select{pointer-events:auto!important;touch-action:manipulation!important;}#login{position:relative!important;z-index:10!important;pointer-events:auto!important;}' ;"
-                + "function loginVisible(){var x=document.getElementById('login');if(!x)return false;var c=getComputedStyle(x);return c.display!=='none'&&c.visibility!=='hidden'&&x.offsetWidth>0&&x.offsetHeight>0;}"
-                + "var nav=[];"
-                + "function scan(){"
-                + "nav=[];var seen=new Set();"
-                + "document.querySelectorAll('*').forEach(function(el){"
-                + "var r=el.getBoundingClientRect(),c=getComputedStyle(el),t=(el.innerText||'').replace(/\\s+/g,' ').trim();"
-                + "if(!t||t.length>90)return;"
-                + "if(r.bottom<innerHeight-8||r.top<innerHeight*0.68||r.height<42||r.height>180||r.width<innerWidth*0.60)return;"
-                + "if(!(c.position==='fixed'||c.position==='sticky'))return;"
-                + "if(!/(پروفایل|گروه|چت)/.test(t))return;"
-                + "var p=el;for(var i=0;i<5&&p;i++,p=p.parentElement){var pr=p.getBoundingClientRect(),pc=getComputedStyle(p);if((pc.position==='fixed'||pc.position==='sticky')&&pr.bottom>=innerHeight-8&&pr.top>innerHeight*0.60&&pr.width>innerWidth*0.60&&pr.height<220){seen.add(p);break;}}"
-                + "});"
-                + "nav=Array.from(seen);"
-                + "nav.forEach(function(el){if(!el.hasAttribute('data-mschat-nav-display'))el.setAttribute('data-mschat-nav-display',el.style.display||'');});"
-                + "}"
-                + "function apply(){if(!nav.length)scan();var hide=loginVisible();nav.forEach(function(el){if(!el.isConnected)return;el.style.setProperty('display',hide?'none':(el.getAttribute('data-mschat-nav-display')||''),'important');});}"
-                + "scan();apply();"
-                + "var login=document.getElementById('login');if(login)new MutationObserver(apply).observe(login,{attributes:true,attributeFilter:['style','class']});"
-                + "if(document.body)new MutationObserver(function(m){var changed=false;m.forEach(function(x){if(x.addedNodes&&x.addedNodes.length)changed=true;});if(changed){scan();apply();}}).observe(document.body,{childList:true,subtree:true});"
+                + "var style=document.getElementById('mschatAndroidFixes');"
+                + "if(!style){style=document.createElement('style');style.id='mschatAndroidFixes';document.head.appendChild(style);}"
+                // Keep the working background fix. No layout or click interception is added here.
+                + "style.textContent=\"html,body{margin:0!important;width:100%!important;min-height:100%!important;}html{background-color:#dfe2ea!important;background-image:linear-gradient(rgba(6,14,50,.20),rgba(18,8,60,.22)),url('background.png')!important;background-repeat:no-repeat!important;background-position:center top!important;background-size:cover!important;background-attachment:scroll!important;}body{min-height:100dvh!important;background:transparent!important;background-image:none!important;overflow-x:hidden!important;-webkit-tap-highlight-color:transparent!important;}\";"
+                // The web version already owns the mobile UI. We only hide a bottom nav while
+                // the login panel is visible, using visibility/opacity so there is no blinking.
+                + "var navTargets=[];"
+                + "function isLoginVisible(){var login=document.getElementById('login');if(!login)return false;var c=getComputedStyle(login),r=login.getBoundingClientRect();return c.display!=='none'&&c.visibility!=='hidden'&&r.width>0&&r.height>0;}"
+                + "function looksLikeNavText(t){t=(t||'').replace(/\\s+/g,' ').trim();return /(پروفایل|گروه.?ها|چت.?ها|پشتیبان|پنتر)/.test(t)&&t.length<100;}"
+                + "function findNav(){var found=new Set();document.querySelectorAll('body *').forEach(function(el){var t=(el.innerText||'').replace(/\\s+/g,' ').trim();if(!looksLikeNavText(t))return;var r=el.getBoundingClientRect(),c=getComputedStyle(el);if(r.bottom<innerHeight-8||r.top<innerHeight*0.62||r.width<innerWidth*.60||r.height<45||r.height>220)return;var p=el;for(var i=0;i<6&&p;i++,p=p.parentElement){var pr=p.getBoundingClientRect(),pc=getComputedStyle(p);if((pc.position==='fixed'||pc.position==='sticky')&&pr.bottom>=innerHeight-10&&pr.top>innerHeight*.60&&pr.width>innerWidth*.60&&pr.height<240){found.add(p);break;}}});navTargets=Array.from(found);}"
+                + "function applyNav(){var login=isLoginVisible();navTargets.forEach(function(el){if(!el.isConnected)return;if(login){el.style.setProperty('visibility','hidden','important');el.style.setProperty('opacity','0','important');el.style.setProperty('pointer-events','none','important');}else{el.style.removeProperty('visibility');el.style.removeProperty('opacity');el.style.removeProperty('pointer-events');}});}"
+                + "function refreshNav(){findNav();applyNav();}"
+                + "refreshNav();"
+                + "setTimeout(refreshNav,250);setTimeout(refreshNav,700);setTimeout(refreshNav,1500);"
+                + "var login=document.getElementById('login');if(login)new MutationObserver(function(){applyNav();}).observe(login,{attributes:true,attributeFilter:['style','class']});"
+                + "if(document.body)new MutationObserver(function(m){var added=false;m.forEach(function(x){if(x.addedNodes&&x.addedNodes.length)added=true;});if(added){setTimeout(refreshNav,0);}}).observe(document.body,{childList:true,subtree:true});"
+                + "window.addEventListener('resize',function(){setTimeout(refreshNav,50)});"
                 + "}catch(e){console.warn('MS__Chat Android fixes',e)}})();";
         view.evaluateJavascript(js, null);
     }
