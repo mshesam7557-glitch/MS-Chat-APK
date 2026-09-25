@@ -20,7 +20,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
-    private static final String HOME = "https://ms-chat-307k.onrender.com/";
+    private static final String HOME = "https://ms-chat-307k.onrender.com/?mschat_android=5";
     private static final int FILE_CHOOSER = 1001;
     private static final int MEDIA_PERMS = 1002;
 
@@ -33,7 +33,11 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(85, 117, 255));
         getWindow().setNavigationBarColor(Color.BLACK);
         buildWebView();
-        if (state == null) webView.loadUrl(HOME); else webView.restoreState(state);
+        webView.clearCache(true);
+        if (state != null) {
+            webView.clearHistory();
+        }
+        webView.loadUrl(HOME);
     }
 
     private void buildWebView() {
@@ -63,6 +67,8 @@ public class MainActivity extends Activity {
         s.setLoadWithOverviewMode(false);
         s.setJavaScriptCanOpenWindowsAutomatically(true);
         s.setSupportMultipleWindows(false);
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        s.setLoadsImagesAutomatically(true);
         s.setTextZoom(100);
         s.setDefaultFontSize(16);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -77,6 +83,7 @@ public class MainActivity extends Activity {
                 super.onPageFinished(view, url);
                 view.setFocusable(true);
                 view.setFocusableInTouchMode(true);
+                injectAndroidWebFixes(view);
             }
 
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
@@ -131,6 +138,30 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
+    }
+
+
+    private void injectAndroidWebFixes(WebView view) {
+        String js = "javascript:(function(){"
+                + "try{"
+                + "var style=document.getElementById('mschatAndroidFixes');"
+                + "if(!style){style=document.createElement('style');style.id='mschatAndroidFixes';document.head.appendChild(style);}"
+                + "style.textContent=`html,body{width:100%!important;min-height:100%!important;}body{min-height:100dvh!important;overflow-x:hidden!important;background-repeat:no-repeat!important;background-size:cover!important;background-position:center top!important;background-attachment:fixed!important;-webkit-tap-highlight-color:transparent!important;}button,input,label,textarea,select{pointer-events:auto!important;touch-action:manipulation!important;}#login{position:relative!important;z-index:10!important;pointer-events:auto!important;}#chat{position:relative!important;z-index:5!important;}`;"
+                + "var update=function(){"
+                + "var login=document.getElementById('login');var logged=!!login&&getComputedStyle(login).display==='none';"
+                + "document.querySelectorAll('*').forEach(function(el){"
+                + "var t=(el.innerText||'').replace(/\\s+/g,' ').trim();if(!t||t.length>100)return;"
+                + "var r=el.getBoundingClientRect(),c=getComputedStyle(el);"
+                + "var isBottom=(c.position==='fixed'||c.position==='sticky')&&r.bottom>=innerHeight-8&&r.top>innerHeight*0.72&&r.height>45&&r.height<190&&r.width>innerWidth*0.70;"
+                + "var navText=/(^| )(پروفایل|گروه.?ها|چت.?ها|پیام.?ها|پنتر)( |$)/.test(t);"
+                + "if(isBottom&&navText){if(!el.hasAttribute('data-mschat-old-display'))el.setAttribute('data-mschat-old-display',el.style.display||'');el.style.setProperty('display',logged?'':'none','important');}"
+                + "else if(el.hasAttribute('data-mschat-old-display')){el.style.display=el.getAttribute('data-mschat-old-display');el.removeAttribute('data-mschat-old-display');}"
+                + "});"
+                + "if(document.body){document.body.style.minHeight='100dvh';document.body.style.backgroundRepeat='no-repeat';document.body.style.backgroundSize='cover';document.body.style.backgroundPosition='center top';}"
+                + "};update();if(window.__mschatFixTimer)clearInterval(window.__mschatFixTimer);window.__mschatFixTimer=setInterval(update,700);"
+                + "}catch(e){console.warn('MS__Chat Android fixes',e)}"
+                + "})();";
+        view.evaluateJavascript(js, null);
     }
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] perms, int[] results) {

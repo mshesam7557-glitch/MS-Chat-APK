@@ -1,15 +1,15 @@
-# MS__Chat Android v3
+# MS__Chat Android
 
-This Android build intentionally does **not** inject or alter the web site's mobile UI.
-It loads the live MS__Chat web app directly so the phone web layout is used as-is.
+این نسخه فقط پروژه Android است و به مخزن Render مربوط نیست.
 
-- App label: MS__Chat
-- Application id: com.mschat.app
-- Target URL: https://ms-chat-307k.onrender.com/
-- JavaScript + DOM storage enabled
-- Microphone/camera permission bridge for WebRTC
-- File picker bridge
-- Explicit WebView focus/touch handling
-- No Android-side mobile CSS/DOM override
+## اصلاحات v1.3.0
+- جلوگیری از نمایش نوار ناوبری پایین در صفحه ورود داخل APK
+- حذف کش قدیمی WebView برای دریافت نسخه تازه سایت
+- بهبود نمایش پس‌زمینه در WebView در ارتفاع کامل صفحه
+- فعال نگه داشتن لمس/کلیک فرم‌ها و دکمه‌های وب
+- حفظ نام برنامه `MS__Chat` و آیکون اختصاصی
+- مجوزهای میکروفون/دوربین و انتخاب فایل برای تماس و رسانه
 
-Build from GitHub Actions or with `gradlew.bat assembleDebug`.
+## Build
+GitHub Actions workflow در `.github/workflows/build-apk.yml` APK را با JDK 17 و Gradle 8.7 می‌سازد.
+Artifact خروجی: `MS-Chat-APK`
