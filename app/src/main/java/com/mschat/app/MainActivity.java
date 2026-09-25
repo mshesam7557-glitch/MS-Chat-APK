@@ -20,7 +20,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
-    private static final String HOME = "https://ms-chat-307k.onrender.com/?mschat_android=5";
+    private static final String HOME = "https://ms-chat-307k.onrender.com/?mschat_android=6";
     private static final int FILE_CHOOSER = 1001;
     private static final int MEDIA_PERMS = 1002;
 
@@ -146,23 +146,34 @@ public class MainActivity extends Activity {
                 + "try{"
                 + "var style=document.getElementById('mschatAndroidFixes');"
                 + "if(!style){style=document.createElement('style');style.id='mschatAndroidFixes';document.head.appendChild(style);}"
-                + "style.textContent=`html,body{width:100%!important;min-height:100%!important;}body{min-height:100dvh!important;overflow-x:hidden!important;background-repeat:no-repeat!important;background-size:cover!important;background-position:center top!important;background-attachment:fixed!important;-webkit-tap-highlight-color:transparent!important;}button,input,label,textarea,select{pointer-events:auto!important;touch-action:manipulation!important;}#login{position:relative!important;z-index:10!important;pointer-events:auto!important;}#chat{position:relative!important;z-index:5!important;}`;"
-                + "var update=function(){"
-                + "var login=document.getElementById('login');var logged=!!login&&getComputedStyle(login).display==='none';"
+                + "style.textContent=`html,body{margin:0!important;width:100%!important;min-height:100%!important;}html{background-color:#dfe2ea!important;background-image:linear-gradient(rgba(6,14,50,.28),rgba(18,8,60,.30)),url("background.png")!important;background-repeat:no-repeat!important;background-position:center top!important;background-size:cover!important;background-attachment:scroll!important;}body{min-height:100dvh!important;background:transparent!important;background-image:none!important;overflow-x:hidden!important;-webkit-tap-highlight-color:transparent!important;}button,input,label,textarea,select{pointer-events:auto!important;touch-action:manipulation!important;}#login{position:relative!important;z-index:10!important;pointer-events:auto!important;}#chat{position:relative!important;z-index:5!important;}`;"
+                + "var navTargets=[];"
+                + "function isLoginVisible(){var login=document.getElementById('login');return !!login&&getComputedStyle(login).display!=='none'&&login.getBoundingClientRect().height>0;}"
+                + "function isNavText(t){return /(^| )(پروفایل|گروه.?ها|چت.?ها|پیام.?ها|پنتر)( |$)/.test(t);}"
+                + "function findNavTargets(){"
+                + "var found=new Set();"
                 + "document.querySelectorAll('*').forEach(function(el){"
-                + "var t=(el.innerText||'').replace(/\\s+/g,' ').trim();if(!t||t.length>100)return;"
-                + "var r=el.getBoundingClientRect(),c=getComputedStyle(el);"
-                + "var isBottom=(c.position==='fixed'||c.position==='sticky')&&r.bottom>=innerHeight-8&&r.top>innerHeight*0.72&&r.height>45&&r.height<190&&r.width>innerWidth*0.70;"
-                + "var navText=/(^| )(پروفایل|گروه.?ها|چت.?ها|پیام.?ها|پنتر)( |$)/.test(t);"
-                + "if(isBottom&&navText){if(!el.hasAttribute('data-mschat-old-display'))el.setAttribute('data-mschat-old-display',el.style.display||'');el.style.setProperty('display',logged?'':'none','important');}"
-                + "else if(el.hasAttribute('data-mschat-old-display')){el.style.display=el.getAttribute('data-mschat-old-display');el.removeAttribute('data-mschat-old-display');}"
+                + "var t=(el.innerText||'').replace(/\\s+/g,' ').trim();if(!t||t.length>60||!isNavText(t))return;"
+                + "var p=el;var picked=null;"
+                + "for(var i=0;i<6&&p;i++,p=p.parentElement){var c=getComputedStyle(p),r=p.getBoundingClientRect();var fixed=(c.position==='fixed'||c.position==='sticky');if(fixed&&r.bottom>=innerHeight-12&&r.top>innerHeight*0.65&&r.height>45&&r.height<220&&r.width>innerWidth*0.60){picked=p;break;}}"
+                + "if(picked)found.add(picked);"
                 + "});"
+                + "navTargets=Array.from(found);"
+                + "navTargets.forEach(function(el){if(!el.hasAttribute('data-mschat-nav-display'))el.setAttribute('data-mschat-nav-display',el.style.display||'');});"
+                + "return navTargets.length>0;"
+                + "}"
+                + "function applyNavVisibility(){if(!navTargets.length)findNavTargets();var hidden=isLoginVisible();navTargets.forEach(function(el){if(!el.isConnected)return;el.style.setProperty('display',hidden?'none':el.getAttribute('data-mschat-nav-display')||'','important');});}"
+                + "if(!findNavTargets()){setTimeout(applyNavVisibility,250);setTimeout(applyNavVisibility,1000);setTimeout(applyNavVisibility,2500);}"
+                + "else applyNavVisibility();"
+                + "var login=document.getElementById('login');"
+                + "if(login){new MutationObserver(function(){applyNavVisibility();}).observe(login,{attributes:true,attributeFilter:['style','class']});}"
+                + "new MutationObserver(function(m){var added=false;m.forEach(function(x){if(x.addedNodes&&x.addedNodes.length)added=true;});if(added&&navTargets.length===0){findNavTargets();applyNavVisibility();}}).observe(document.body,{childList:true,subtree:true});"
                 + "if(document.body){document.body.style.minHeight='100dvh';document.body.style.backgroundRepeat='no-repeat';document.body.style.backgroundSize='cover';document.body.style.backgroundPosition='center top';}"
-                + "};update();if(window.__mschatFixTimer)clearInterval(window.__mschatFixTimer);window.__mschatFixTimer=setInterval(update,700);"
                 + "}catch(e){console.warn('MS__Chat Android fixes',e)}"
                 + "})();";
         view.evaluateJavascript(js, null);
     }
+
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] perms, int[] results) {
         super.onRequestPermissionsResult(requestCode, perms, results);
